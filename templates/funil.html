@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title"><i class="bi bi-kanban me-2" style="color:#c9a84c;"></i>Funil de Vendas</h1>
+  <a href="/clientes/novo" class="btn btn-gold"><i class="bi bi-plus-lg"></i> Novo Cliente</a>
+</div>
+
+<div class="kanban-board" id="kanban">
+  {% for etapa in etapas %}
+  <div class="kanban-col" data-etapa="{{ etapa }}" ondragover="onDragOver(event)" ondrop="onDrop(event)">
+    <div class="kanban-col-header">
+      <span>{{ etapa }}</span>
+      <span class="badge bg-secondary" style="font-size:.7rem;">{{ por_etapa[etapa]|length }}</span>
+    </div>
+    <div class="kanban-cards" id="col-{{ etapa }}">
+      {% for c in por_etapa[etapa] %}
+      <div class="kanban-card"
+           draggable="true"
+           data-id="{{ c.id }}"
+           ondragstart="onDragStart(event)"
+           onclick="window.location='/clientes/{{ c.id }}'">
+        <div class="fw-semibold">{{ c.nome }}</div>
+        <div class="card-empresa">{{ c.empresa or '' }}</div>
+        <div class="card-servico">
+          {% if c.servico %}<i class="bi bi-tag"></i> {{ c.servico }}{% endif %}
+          {% if c.valor %} · R$ {{ '%.0f'|format(c.valor) }}{% endif %}
+        </div>
+        {% if c.responsavel %}
+        <div class="card-servico mt-1"><i class="bi bi-person"></i> {{ c.responsavel }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+let draggingId = null;
+
+function onDragStart(e) {
+  draggingId = e.currentTarget.dataset.id;
+  e.currentTarget.style.opacity = '.5';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+document.addEventListener('dragend', e => {
+  document.querySelectorAll('.kanban-card').forEach(c => c.style.opacity = '1');
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+});
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  col.classList.remove('drag-over');
+  const novaEtapa = col.dataset.etapa;
+  if (!draggingId) return;
+
+  fetch(`/api/cliente/${draggingId}/etapa`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({etapa: novaEtapa})
+  }).then(r => r.json()).then(data => {
+    if (data.ok) location.reload();
+  });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="page-title"><i class="bi bi-speedometer2 me-2" style="color:#c9a84c;"></i>Dashboard</h1>
+  <span class="text-muted" style="font-size:.85rem;">{{ hoje.strftime('%d/%m/%Y') }}</span>
+</div>
+
+<!-- Métricas principais -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card cyan">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value" style="color:var(--cyan);text-shadow:var(--glow-cyan);">{{ clientes|length }}</div>
+          <div class="stat-label">Total clientes</div>
+        </div>
+        <i class="bi bi-people stat-icon" style="color:var(--cyan);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card green">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value" style="color:var(--green);text-shadow:var(--glow-green);">{{ por_etapa['Ativo'] }}</div>
+          <div class="stat-label">Clientes ativos</div>
+        </div>
+        <i class="bi bi-star stat-icon" style="color:var(--green);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card gold">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value" style="color:var(--gold);text-shadow:var(--glow-gold);">R$ {{ '{:,.0f}'.format(mrr).replace(',','.') }}</div>
+          <div class="stat-label">Faturamento mensal</div>
+        </div>
+        <i class="bi bi-cash-coin stat-icon" style="color:var(--gold);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card purple">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value" style="color:var(--purple);text-shadow:var(--glow-purple);">R$ {{ '{:,.0f}'.format(repasse).replace(',','.') }}</div>
+          <div class="stat-label">Repasse Gerson</div>
+        </div>
+        <i class="bi bi-person-lines-fill stat-icon" style="color:var(--purple);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card blue">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value" style="color:var(--blue);text-shadow:0 0 20px rgba(59,130,246,.4);">R$ {{ '{:,.0f}'.format(lucro).replace(',','.') }}</div>
+          <div class="stat-label">Lucro líquido</div>
+        </div>
+        <i class="bi bi-graph-up-arrow stat-icon" style="color:var(--blue);"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card pink">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="stat-value {% if tarefas_atrasadas %}atrasado{% endif %}" style="{% if not tarefas_atrasadas %}color:var(--text-dim);{% endif %}">{{ tarefas_atrasadas|length }}</div>
+          <div class="stat-label">Tarefas atrasadas</div>
+        </div>
+        <i class="bi bi-exclamation-circle stat-icon" style="color:var(--pink);"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Funil visual -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="section-title mb-0">Funil de vendas</div>
+      <a href="/funil" class="btn btn-sm btn-outline-secondary">Ver kanban</a>
+    </div>
+    <div class="dash-funil">
+      {% set etapas_funil = etapas | reject('equalto','Cancelado') | list %}
+      {% for e in etapas_funil %}
+      {% set count = por_etapa[e] %}
+      <a href="/clientes?etapa={{ e }}" class="dash-funil-step text-decoration-none">
+        <div class="dash-funil-dot {{ 'has-clients' if count > 0 else '' }}">
+          <span class="dash-funil-count">{{ count }}</span>
+        </div>
+        <div class="dash-funil-label">{{ e }}</div>
+      </a>
+      {% if not loop.last %}
+      <div class="dash-funil-arrow {{ 'active' if count > 0 else '' }}">›</div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Tarefas do dia -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="section-title">Tarefas de hoje</div>
+        {% if tarefas_hoje %}
+        <ul class="list-unstyled mb-0">
+          {% for t in tarefas_hoje %}
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <a href="/clientes/{{ t.cliente_id }}" class="fw-semibold text-decoration-none text-dark">{{ t.titulo }}</a>
+              <div class="text-muted" style="font-size:.75rem;">{{ t.cliente.nome }} {% if t.responsavel %}· {{ t.responsavel }}{% endif %}</div>
+            </div>
+            <span class="badge badge-status-{{ t.status }}">{{ t.status.replace('_',' ') }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0" style="font-size:.85rem;">Nenhuma tarefa para hoje.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tarefas atrasadas -->
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="section-title" style="color:#dc3545;">Tarefas atrasadas</div>
+        {% if tarefas_atrasadas %}
+        <ul class="list-unstyled mb-0">
+          {% for t in tarefas_atrasadas %}
+          <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <a href="/clientes/{{ t.cliente_id }}" class="fw-semibold text-decoration-none text-dark">{{ t.titulo }}</a>
+              <div class="atrasado" style="font-size:.75rem;">{{ t.prazo.strftime('%d/%m') if t.prazo }} · {{ t.cliente.nome }}</div>
+            </div>
+            <span class="badge badge-status-{{ t.status }}">{{ t.status.replace('_',' ') }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0" style="font-size:.85rem;">Nenhuma tarefa atrasada.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Últimos clientes -->
+<div class="card mt-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="section-title mb-0">Clientes recentes</div>
+      <a href="/clientes" class="btn btn-sm btn-outline-secondary">Ver todos</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="font-size:.78rem;color:#888;text-transform:uppercase;">
+          <tr>
+            <th>Nome</th><th>Empresa</th><th>Serviço</th><th>Etapa</th><th>Responsável</th>
+          </tr>
+        </thead>
+        <tbody style="font-size:.88rem;">
+          {% for c in clientes[:8] %}
+          <tr>
+            <td><a href="/clientes/{{ c.id }}" class="text-decoration-none fw-semibold">{{ c.nome }}</a></td>
+            <td>{{ c.empresa or '—' }}</td>
+            <td>{{ c.servico or '—' }}</td>
+            <td><span class="badge-etapa etapa-{{ c.etapa }}">{{ c.etapa }}</span></td>
+            <td>{{ c.responsavel or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

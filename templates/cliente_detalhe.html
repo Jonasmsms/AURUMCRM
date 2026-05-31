@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <a href="/clientes" class="text-muted text-decoration-none" style="font-size:.85rem;">
+      <i class="bi bi-arrow-left"></i> Clientes
+    </a>
+    <h1 class="page-title mt-1">{{ c.nome }}</h1>
+    <div class="d-flex align-items-center gap-2 mt-1">
+      {% if c.empresa %}<span class="text-muted">{{ c.empresa }}</span>{% endif %}
+      <span class="badge-etapa etapa-{{ c.etapa }}">{{ etapas_display[c.etapa] }}</span>
+    </div>
+  </div>
+  <a href="/clientes/{{ c.id }}/editar" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-pencil"></i> Editar
+  </a>
+</div>
+
+<div class="row g-3">
+
+  <!-- Coluna esquerda: info + tarefas -->
+  <div class="col-lg-7">
+
+    <!-- Informações -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="section-title">Informações</div>
+        <div class="row g-2" style="font-size:.88rem;">
+          <div class="col-6"><span class="text-muted">Telefone</span><br><b>{{ c.telefone or '—' }}</b></div>
+          <div class="col-6"><span class="text-muted">E-mail</span><br><b>{{ c.email or '—' }}</b></div>
+          <div class="col-6"><span class="text-muted">Serviço</span><br><b>{{ c.servico or '—' }}</b></div>
+          <div class="col-4"><span class="text-muted">Valor cobrado</span><br><b style="color:#2e7d32;">{% if c.valor %}R$ {{ '%.0f'|format(c.valor) }}{% else %}—{% endif %}</b></div>
+          <div class="col-4"><span class="text-muted">Repasse Gerson</span><br><b style="color:#c62828;">{% if c.valor_socio %}R$ {{ '%.0f'|format(c.valor_socio) }}{% else %}—{% endif %}</b></div>
+          <div class="col-4"><span class="text-muted">Lucro</span><br><b style="color:#1565c0;">R$ {{ '%.0f'|format((c.valor or 0) - (c.valor_socio or 0)) }}</b></div>
+          <div class="col-6"><span class="text-muted">Dia de cobrança</span><br><b>{% if c.dia_cobranca %}Todo dia {{ c.dia_cobranca }}{% else %}—{% endif %}</b></div>
+          <div class="col-6"><span class="text-muted">Responsável</span><br><b>{{ c.responsavel or '—' }}</b></div>
+          <div class="col-6"><span class="text-muted">Criado em</span><br><b>{{ c.criado_em.strftime('%d/%m/%Y') }}</b></div>
+          {% if c.notas %}
+          <div class="col-12 mt-1">
+            <span class="text-muted">Notas</span><br>
+            <span style="white-space:pre-wrap;">{{ c.notas }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Funil visual -->
+    <div class="card mb-3">
+      <div class="card-body pb-2">
+        <div class="section-title mb-3">Funil</div>
+        <div class="funil-steps">
+          {% set etapas_funil = etapas | reject('equalto', 'Cancelado') | list %}
+          {% for e in etapas_funil %}
+          {% set ativo = (e == c.etapa) %}
+          {% set passado = (etapas_funil.index(e) < etapas_funil.index(c.etapa) if c.etapa in etapas_funil else false) %}
+          <div class="funil-step {{ 'ativo' if ativo else ('passado' if passado else '') }}"
+               onclick="{{ '' if ativo else 'moverEtapa(' + c.id|string + ', \'' + e + '\')' }}"
+               title="{{ '' if ativo else 'Mover para ' + etapas_display[e] }}"
+               style="{{ 'cursor:default;' if ativo else 'cursor:pointer;' }}">
+            <div class="funil-dot">
+              {% if passado %}<i class="bi bi-check-lg"></i>{% elif ativo %}<i class="bi bi-circle-fill" style="font-size:.5rem;"></i>{% endif %}
+            </div>
+            <div class="funil-label">{{ etapas_display[e] }}</div>
+          </div>
+          {% if not loop.last %}
+          <div class="funil-line {{ 'passada' if passado or ativo else '' }}"></div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarefas -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="section-title mb-0">Tarefas</div>
+          <button class="btn btn-sm btn-gold" data-bs-toggle="collapse" data-bs-target="#formTarefa">
+            <i class="bi bi-plus"></i> Nova tarefa
+          </button>
+        </div>
+
+        <!-- Form nova tarefa -->
+        <div class="collapse mb-3" id="formTarefa">
+          <form method="post" action="/clientes/{{ c.id }}/tarefas/nova" class="border rounded p-3">
+            <div class="row g-2">
+              <div class="col-12">
+                <input name="titulo" class="form-control form-control-sm" placeholder="Título da tarefa *" required>
+              </div>
+              <div class="col-md-4">
+                <input name="prazo" type="date" class="form-control form-control-sm">
+              </div>
+              <div class="col-md-4">
+                <input name="responsavel" class="form-control form-control-sm" placeholder="Responsável">
+              </div>
+              <div class="col-md-4">
+                <button class="btn btn-sm btn-gold w-100">Adicionar</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Lista de tarefas -->
+        {% if tarefas %}
+        <ul class="list-unstyled mb-0">
+          {% for t in tarefas %}
+          <li class="d-flex justify-content-between align-items-start py-2 border-bottom">
+            <div>
+              <div class="fw-semibold" style="font-size:.88rem;">{{ t.titulo }}</div>
+              <div style="font-size:.75rem;color:#888;">
+                {% if t.prazo %}
+                  <span class="{% if t.prazo < hoje and t.status != 'concluida' %}atrasado{% endif %}">
+                    <i class="bi bi-calendar"></i> {{ t.prazo.strftime('%d/%m/%Y') }}
+                  </span>
+                {% endif %}
+                {% if t.responsavel %} · <i class="bi bi-person"></i> {{ t.responsavel }}{% endif %}
+              </div>
+            </div>
+            <div class="d-flex gap-1 align-items-center ms-2">
+              <form method="post" action="/tarefas/{{ t.id }}/status">
+                <select name="status" class="form-select form-select-sm py-0" style="font-size:.72rem;"
+                        onchange="this.form.submit()">
+                  <option value="pendente" {{ 'selected' if t.status == 'pendente' }}>Pendente</option>
+                  <option value="em_andamento" {{ 'selected' if t.status == 'em_andamento' }}>Em andamento</option>
+                  <option value="concluida" {{ 'selected' if t.status == 'concluida' }}>Concluída</option>
+                </select>
+              </form>
+              <form method="post" action="/tarefas/{{ t.id }}/deletar"
+                    onsubmit="return confirm('Deletar tarefa?');">
+                <button class="btn btn-sm btn-outline-danger py-0" style="font-size:.75rem;">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0" style="font-size:.85rem;">Nenhuma tarefa cadastrada.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna direita: histórico -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <div class="section-title">Histórico</div>
+
+        <!-- Nova anotação -->
+        <form method="post" action="/clientes/{{ c.id }}/historico" class="mb-3">
+          <div class="input-group input-group-sm">
+            <input name="descricao" class="form-control" placeholder="Adicionar anotação...">
+            <button class="btn btn-gold">Salvar</button>
+          </div>
+        </form>
+
+        <div class="timeline">
+          {% for h in historico %}
+          <div class="timeline-item">
+            <div style="font-size:.85rem;">{{ h.descricao }}</div>
+            <div class="time">{{ h.criado_em.strftime('%d/%m/%Y %H:%M') }}</div>
+          </div>
+          {% else %}
+          <p class="text-muted" style="font-size:.85rem;">Nenhuma entrada no histórico.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function moverEtapa(id, etapa) {
+  fetch(`/api/cliente/${id}/etapa`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({etapa})
+  }).then(() => location.reload());
+}
+</script>
+
+{% endblock %}

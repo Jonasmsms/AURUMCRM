@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1 class="page-title mb-4"><i class="bi bi-check2-square me-2" style="color:#c9a84c;"></i>Todas as Tarefas</h1>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="font-size:.78rem;text-transform:uppercase;">
+          <tr>
+            <th class="ps-3">Tarefa</th>
+            <th>Cliente</th>
+            <th>Prazo</th>
+            <th>Responsável</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody style="font-size:.88rem;">
+          {% for t in tarefas %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ t.titulo }}</td>
+            <td>
+              <a href="/clientes/{{ t.cliente_id }}" class="text-decoration-none">{{ t.cliente.nome }}</a>
+            </td>
+            <td>
+              {% if t.prazo %}
+              <span class="{% if t.prazo < hoje %}atrasado{% endif %}">
+                {{ t.prazo.strftime('%d/%m/%Y') }}
+                {% if t.prazo < hoje %}<i class="bi bi-exclamation-circle"></i>{% endif %}
+              </span>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ t.responsavel or '—' }}</td>
+            <td>
+              <form method="post" action="/tarefas/{{ t.id }}/status">
+                <select name="status" class="form-select form-select-sm py-0" style="font-size:.75rem;width:auto;"
+                        onchange="this.form.submit()">
+                  <option value="pendente" {{ 'selected' if t.status == 'pendente' }}>Pendente</option>
+                  <option value="em_andamento" {{ 'selected' if t.status == 'em_andamento' }}>Em andamento</option>
+                  <option value="concluida" {{ 'selected' if t.status == 'concluida' }}>Concluída</option>
+                </select>
+              </form>
+            </td>
+            <td>
+              <a href="/clientes/{{ t.cliente_id }}" class="btn btn-sm btn-outline-secondary py-0">
+                <i class="bi bi-arrow-right"></i>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">Nenhuma tarefa pendente.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
