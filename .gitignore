@@ -6,3 +6,7 @@ __pycache__/
 drive_credentials.json
 drive_token.json
 *.log
+static/logos/
+static/generated/
+run_out.txt
+run_err.txt
